@@ -1,0 +1,148 @@
+extends base_view
+
+block title_content
+  title Setting Up
+
+block body_content
+  h1 Setting up a website for people who don't know how to set up a website
+  ol
+    li 
+      p Buy a virtual private server. I use #[a(href="https://www.linode.com/") Linode.]
+      p I don't know why I picked Linode, but I can recommend it - it is easy to use and cheap.
+
+    li Purchase a domain name from a registrar.
+      p I use #[a(href="https://domains.google.com/registrar/") Google Domains].
+
+    li Move your Google Domain to use Linode's name servers.
+    li Set up domains on Linode to point to your domain name.
+    li 
+      p Install docker
+      p Follow along #[a(href="https://www.linode.com/docs/guides/installing-and-using-docker-on-ubuntu-and-debian/") with this link.]
+
+
+      pre: code. 
+        sudo apt update
+        sudo apt install apt-transport-https &&
+                ca-certificates &&
+                curl &&
+                gnupg &&
+                lsb-release
+        curl -fsSL https://download.docker.com/linux/debian/gpg |
+            sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+            https://download.docker.com/linux/debian $(lsb_release -cs) stable" |
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        # Install packages that we want:
+        sudo apt update
+        sudo apt install docker-ce
+        sudo apt install docker-ce-cli
+        sudo apt install containerd.io
+        sudo apt install docker-compose
+
+        # Start up docker/docker-compose:
+        sudo systemctl start docker
+        sudo systemctl start docker-compose
+
+        # Optionally; you can enable these processes to start
+        # on server startup as well:
+        sudo systemctl enable docker
+        sudo systemctl enable containerd
+        sudo systemctl enable docker-compose
+    
+    li 
+      p Set up UFW:
+      a(href="https://www.linode.com/docs/guides/configure-firewall-with-ufw/") Here is a guide for setting up UFW as part of the Linode help library.
+
+      pre: code. 
+        # Install UFW:
+        sudo apt update
+        sudo apt install ufw
+
+        # Allow the traffic we want:
+        sudo ufw allow ssh
+        sudo ufw allow http
+        sudo ufw allow https
+
+        # Otherwise, by default, allow outgoing traffic
+        # and deny incoming traffic:
+        sudo ufw default allow outgoing
+        sudo ufw default deny incoming
+
+        # Turn on the firewall:
+        sudo ufw enable
+
+        # This line shows us the status of our UFW install:
+        sudo ufw status
+
+      p There is some #[a(href="https://blog.viktorpetersson.com/2014/11/03/the-dangers-of-ufw-docker.html") weird stuff that can happen with Docker plus UFW.]
+
+    li Set up https for your nginx container.
+      p I'm going to use #[a(href="https://certbot.eff.org/") Certbot.] 
+      p Honestly, Certbot's help is probably more than thorough enough, but I'll detail the steps here anyway.
+
+      pre: code. 
+        # Install the snap package manager:
+        sudo apt update
+        sudo apt install snapd
+
+        # Install the 'core' package from snap:
+        sudo snap install core
+        sudo snap refresh core
+
+        # Install certbot:
+        sudo apt remove certbot
+        sudo snap install --classic certbot
+        sudo ln -s /snap/bin/certbot /usr/bin/certbot
+
+        # Request a certificate:
+            sudo certbot certonly --standalone
+
+      p Follow the prompts to request certificates for your domain names.
+      p It will provide four files. The two you care about are #[i fullchain.pem] (the certificate) and #[i privkey.pem] (your private key) file.
+      p You can #[a(href="https://faun.pub/setting-up-ssl-certificates-for-nginx-in-docker-environ-e7eec5ebb418") follow along with this guide] on installing SSL certificates specifically in an nginx docker container.
+      p By default, it will publish your certificate/key pair to
+      pre: code. 
+        /etc/letsencrypt/live/[your-site-name]/fullchain.pem
+        /etc/letsencrypt/live/[your-site-name]/privkey.pem
+
+      p Finally, you mount them on a volume as part of your docker-compose file:
+
+      pre: code. 
+        nginx:
+        container_name: nginx
+        restart: always
+        build: ./nginx
+        ports:
+        - "81:81"
+        - "443:443"
+        depends_on:
+        - flask_app
+        volumes:
+        - /etc/letsencrypt/live/www.topicalisland.net/fullchain.pem:/etc/nginx/ssl/certs/fullchain.pem
+        - /etc/letsencrypt/live/www.topicalisland.net/privkey.pem:/etc/nginx/ssl/certs/privkey.pem
+    
+      p (though obviously with your site name rather than www.topicalisland.net)
+      p Then, in your nginx/project.conf file, append these lines to your configuration:
+
+      pre: code. 
+        listen 81;
+        listen 443 ssl;
+
+        server_name www.topicalisland.net;
+
+        ssl_certificate /etc/nginx/ssl/certs/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/certs/privkey.pem;
+
+  h2 And then what?
+  ul
+    li You can find the #[a(href="https://github.com/sladkovm/docker-flask-gunicorn-nginx") code I used to bootstrap up my flask/nginx/docker on Github here] 
+    li and the #[a(href="https://sladkovm.github.io/webdev/2017/10/16/Deploying-Plotly-Dash-in-a-Docker-Container-on-Digitital-Ocean.html") corresponding article here.]
+    li Putting code on the server.
+    li Crash course in brutalist CSS.
+
+  h2 "Optional" extras
+  ul 
+    li Set up users?
+    li Reverse DNS?

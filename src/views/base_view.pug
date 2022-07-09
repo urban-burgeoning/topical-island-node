@@ -1,6 +1,8 @@
-html 
-  head 
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
     link(rel="stylesheet", href="/basic.css")
-    title Some content!
-  body 
-    p Some content!
+    block title_content
+  body
+    block body_content
