@@ -29,7 +29,7 @@ block body_content
     li You should have a file in ~/.ssh called authorized_keys. cat the public key file (file ending in .pub) onto the file authorized_keys:
       code cat your_key_name.pub >> authorized_keys
     li Add the private key (file not ending in .pub) to secrets by going to Settings > Secrets > Actions in Github.
-      img(width="100%" src="/static/" alt="A guide to locating the Secrets option in Github.")
+      img(width="100%" src="/settings_secrets_actions.png" alt="A guide to locating the Secrets option in Github.")
       When doing this, ensure that the parts that start with -----START OPENSSH KEY---- and ----END OPENSSH KEY----- are also copied.
     li While you're adding secrets in that menu, you should also add one for your server's IP address.
     li Then use a template .yml file for your Github Action.
